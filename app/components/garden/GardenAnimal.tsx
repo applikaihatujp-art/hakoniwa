@@ -7,7 +7,15 @@ export default function GardenAnimal() {
   const { animalsOnScreen } = useGarden();
 
   return (
-    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100vw",
+        height: "100vh",
+        // overflow: "hidden" だと右側で押しつぶされるため、clipに変更する
+        overflow: "clip",
+      }}
+    >
       {animalsOnScreen.map((animal) => (
         <AnimalItem key={animal.id} animal={animal} />
       ))}
