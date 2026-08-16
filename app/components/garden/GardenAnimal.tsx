@@ -10,7 +10,6 @@ type Animal = {
   base_rate: number;
 };
 
-// 位置情報と、現在地・目標地を持つ型
 type PlacedAnimal = Animal & {
   x: number;
   y: number;
@@ -21,7 +20,6 @@ type PlacedAnimal = Animal & {
 export default function Garden() {
   const [animalsOnScreen, setAnimalsOnScreen] = useState<PlacedAnimal[]>([]);
 
-  // 抽選関数
   const performGacha = async () => {
     const { data: allAnimals, error } = await supabase.from("animals").select("*");
     if (error || !allAnimals) return;
@@ -48,37 +46,33 @@ export default function Garden() {
     setAnimalsOnScreen(winners);
   };
 
-  // 初回実行と1分ごとのガチャ
   useEffect(() => {
     performGacha();
     const interval = setInterval(performGacha, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // 动物たちがちょこちょこ歩く（あまり長い距離動かない）ためのタイマー
   useEffect(() => {
     const walkInterval = setInterval(() => {
       setAnimalsOnScreen((prevAnimals) =>
         prevAnimals.map((animal) => {
-          // 現在地から「±3%」以内のごく近い距離を次の目的地にする
           const moveRange = 3;
           let newTargetX = animal.targetX + (Math.random() * (moveRange * 2) - moveRange);
           let newTargetY = animal.targetY + (Math.random() * (moveRange * 2) - moveRange);
 
-          // 画面外に行き過ぎないように制限（端から10%〜90%の範囲に収める）
           newTargetX = Math.max(10, Math.min(90, newTargetX));
           newTargetY = Math.max(20, Math.min(80, newTargetY));
 
           return {
             ...animal,
-            x: animal.targetX, // 実際に位置を更新
+            x: animal.targetX,
             y: animal.targetY,
-            targetX: newTargetX, // 次の目的地を更新
+            targetX: newTargetX,
             targetY: newTargetY,
           };
         }),
       );
-    }, 3000); // 3秒ごとにちょこちょこ移動
+    }, 3000);
 
     return () => clearInterval(walkInterval);
   }, []);
@@ -92,12 +86,25 @@ export default function Garden() {
             position: "absolute",
             left: `${animal.x}%`,
             top: `${animal.y}%`,
-            fontSize: "40px",
-            // 2秒かけてゆっくり滑らかに移動させる
             transition: "all 2s ease-in-out",
+            transform: "translate(-50%, -50%)",
+            zIndex: 10,
           }}
         >
-          {animal.image_url}
+          <img
+            src={`https://njjyylfjcxfrockmqsuq.supabase.co/storage/v1/object/public/animal-images/${animal.image_url}`}
+            alt={animal.name}
+            style={{
+              width: "60px",
+              height: "60px",
+              objectFit: "contain",
+              display: "block",
+              background: "transparent", // 背景を透明にする
+            }}
+            onError={(e) => {
+              console.log("画像の読み込みに失敗しました:", animal.image_url);
+            }}
+          />
         </div>
       ))}
     </div>
