@@ -70,7 +70,7 @@ export function useGarden() {
           .filter((animal) => animal.status !== "walking-out") // 退場し終えた子を削除
           .map((animal) => (animal.status === "entering" ? { ...animal, status: "active" as const } : animal)),
       );
-    }, 12000); // 8秒間
+    }, 20000); // 8秒間
   }, []);
 
   // 2分ごと（120000ms）にガチャを実行
@@ -87,11 +87,7 @@ export function useGarden() {
         prevAnimals.map((animal) => {
           // 退場中（walking-out）の動物は画面外の targetX に向かわせるためスキップ
           if (animal.status === "walking-out") {
-            return {
-              ...animal,
-              x: animal.targetX,
-              y: animal.targetY,
-            };
+            return animal;
           }
 
           // 通常時（active）または入場中（entering）のランダム歩行

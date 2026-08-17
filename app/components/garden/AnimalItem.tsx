@@ -9,20 +9,24 @@ type AnimalItemProps = {
 export function AnimalItem({ animal }: AnimalItemProps) {
   const imageUrl = `https://njjyylfjcxfrockmqsuq.supabase.co/storage/v1/object/public/animal-images/${animal.image_url}`;
 
+  // ステータスに応じて移動速度（秒数）を自動切り替え
+  let transitionDuration = "3s"; // 通常のチョロチョロ移動
+  if (animal.status === "entering") {
+    transitionDuration = "15s"; // 入場時は少しゆったり（お好みで調整可能）
+  } else if (animal.status === "walking-out") {
+    transitionDuration = "12s"; // 退場時は画面外へしっかり歩かせる
+  }
+
   return (
     <div
       style={{
         position: "absolute",
         left: `${animal.x}%`,
         top: `${animal.y}%`,
-        // ★ここを "all" から "left と top" だけに変更します
-        transition: "left 15s ease-in-out, top 15s ease-in-out",
+        transition: `left ${transitionDuration} ease-in-out, top ${transitionDuration} ease-in-out`,
         transform: "translate(-50%, -50%)",
-        // ▼ これを追加！これでどんな位置でもサイズが変わらなくなります
         width: "90px",
         height: "90px",
-        // ▲
-
         zIndex: 10,
         background: "transparent",
       }}
