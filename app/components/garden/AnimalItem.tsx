@@ -16,7 +16,7 @@ export function AnimalItem({ animal }: AnimalItemProps) {
         left: `${animal.x}%`,
         top: `${animal.y}%`,
         // ★ここを "all" から "left と top" だけに変更します
-        transition: "left 10s ease-in-out, top 10s ease-in-out",
+        transition: "left 15s ease-in-out, top 15s ease-in-out",
         transform: "translate(-50%, -50%)",
         // ▼ これを追加！これでどんな位置でもサイズが変わらなくなります
         width: "90px",

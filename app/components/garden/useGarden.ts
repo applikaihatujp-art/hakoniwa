@@ -13,33 +13,39 @@ export function useGarden() {
 
     const multiplier = 2.0;
 
-    // 1. 今いる動物たちを「画面の外へ歩いて退場する (walking-out)」状態にする
-    setAnimalsOnScreen((prev) =>
-      prev.map((animal) => {
-        // 現在地から一番近い左右どちらかの画面外（例: -10% または 110%）を退場先に決定
-        const exitX = animal.x < 50 ? -15 : 115;
-        return {
-          ...animal,
-          targetX: exitX, // 画面外に向かわせる
-          status: "walking-out" as const,
-        };
-      }),
-    );
+    // 1. 今回のガチャで当選するメンバーを計算
+    const rawWinners = allAnimals.filter((animal: Animal) => {
+      const probability = animal.base_rate * multiplier;
+      return Math.random() < probability;
+    });
 
-    // 2. 約8秒〜10秒かけて外へ歩かせてから、完全に消して新しいメンバーを入場させる
-    setTimeout(() => {
-      const winners: PlacedAnimal[] = allAnimals
-        .filter((animal: Animal) => {
-          const probability = animal.base_rate * multiplier;
-          return Math.random() < probability;
-        })
+    setAnimalsOnScreen((prev) => {
+      // 2. 現在画面にいる「アクティブ（active）」な子たちを取得
+      const currentActive = prev.filter((a) => a.status === "active");
+
+      // 3. 引き続き当選した子は、退場させずにそのまま残す（surviving）
+      const survivingAnimals = currentActive.filter((activeAnimal) => rawWinners.some((winner) => winner.id === activeAnimal.id));
+
+      // 4. 外れてしまった子は、画面外へ歩かせて退場（walking-out）させる
+      const exitingAnimals = currentActive
+        .filter((activeAnimal) => !rawWinners.some((winner) => winner.id === activeAnimal.id))
         .map((animal) => {
-          // 入場時はあえて画面の外（例: 左右のどちらか）からスタートさせる
+          const exitX = animal.x < 50 ? -15 : 115;
+          return {
+            ...animal,
+            targetX: exitX,
+            status: "walking-out" as const,
+          };
+        });
+
+      // 5. 新しく当選した子（今までいなかった子）だけを入場（entering）させる
+      const newlyEntering = rawWinners
+        .filter((winner) => !currentActive.some((active) => active.id === winner.id))
+        .map((animal) => {
           const startFromLeft = Math.random() < 0.5;
           const startX = startFromLeft ? -15 : 115;
           const startY = Math.random() * 60 + 20;
 
-          // 最終的に落ち着く庭の中のランダムな目標地点
           const finalTargetX = Math.random() * 80 + 10;
           const finalTargetY = Math.random() * 60 + 20;
 
@@ -47,19 +53,24 @@ export function useGarden() {
             ...animal,
             x: startX,
             y: startY,
-            targetX: finalTargetX, // 最終地点へ向かわせる
+            targetX: finalTargetX,
             targetY: finalTargetY,
             status: "entering" as const,
           };
         });
 
-      setAnimalsOnScreen(winners);
+      // 画面に残る子、去る子、新しく入る子を同時に存在させる（重複IDが発生しないためエラーが起きません）
+      return [...survivingAnimals, ...exitingAnimals, ...newlyEntering];
+    });
 
-      // 3. 入場してきた子がしばらく歩いて定着したら "active" にする
-      setTimeout(() => {
-        setAnimalsOnScreen((prev) => prev.map((animal) => ({ ...animal, status: "active" as const })));
-      }, 4000); // 入場に4秒くらいかける
-    }, 8000); // 8秒かけて外へ歩かせる
+    // 6. 8秒かけて退場しきった子を消し、入場してきた子を "active" にする
+    setTimeout(() => {
+      setAnimalsOnScreen((prev) =>
+        prev
+          .filter((animal) => animal.status !== "walking-out") // 退場し終えた子を削除
+          .map((animal) => (animal.status === "entering" ? { ...animal, status: "active" as const } : animal)),
+      );
+    }, 12000); // 8秒間
   }, []);
 
   // 2分ごと（120000ms）にガチャを実行
@@ -69,17 +80,16 @@ export function useGarden() {
     return () => clearInterval(interval);
   }, [performGacha]);
 
-  // 3秒ごとの移動ロジック
+  // 定期的な移動ロジック
   useEffect(() => {
     const walkInterval = setInterval(() => {
       setAnimalsOnScreen((prevAnimals) =>
         prevAnimals.map((animal) => {
-          // 退場中（walking-out）の動物は、自分で設定した画面外の targetX に向かって歩き続けるので、
-          // ランダムウォークの処理はスキップしてそのままの位置・ターゲットを維持させる
+          // 退場中（walking-out）の動物は画面外の targetX に向かわせるためスキップ
           if (animal.status === "walking-out") {
             return {
               ...animal,
-              x: animal.targetX, // 一気に、あるいはtransitionで滑らかに外へ
+              x: animal.targetX,
               y: animal.targetY,
             };
           }
@@ -89,7 +99,7 @@ export function useGarden() {
           let newTargetX = animal.targetX + (Math.random() * (moveRange * 2) - moveRange);
           let newTargetY = animal.targetY + (Math.random() * (moveRange * 2) - moveRange);
 
-          // 入場中の子は庭の中（10〜90%）にしっかり収まるように制限
+          // 庭の中にしっかり収まるように制限
           newTargetX = Math.max(5, Math.min(95, newTargetX));
           newTargetY = Math.max(10, Math.min(90, newTargetY));
 
