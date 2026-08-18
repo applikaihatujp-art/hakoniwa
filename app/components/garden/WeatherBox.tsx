@@ -269,6 +269,7 @@ export default function WeatherBox() {
                   style={{
                     padding: "8px",
                     background: "#f0f0f0",
+                    color: "#333", // ←ここを追加！文字を濃い色に固定します
                     border: "1px solid #ddd",
                     borderRadius: "6px",
                     cursor: "pointer",
