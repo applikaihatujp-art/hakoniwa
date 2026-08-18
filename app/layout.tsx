@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "箱庭アプリ",
     description: "あなただけの小さな箱庭を育てるアプリ",
-    url: "あなたのアプリのURL（デプロイ後でOK）",
+    url: "https://hakoniwa.rine-apps.com",
     siteName: "箱庭アプリ",
     images: [
       {
