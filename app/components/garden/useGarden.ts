@@ -59,18 +59,16 @@ export function useGarden() {
           };
         });
 
-      // 画面に残る子、去る子、新しく入る子を同時に存在させる（重複IDが発生しないためエラーが起きません）
       return [...survivingAnimals, ...exitingAnimals, ...newlyEntering];
     });
+  }, []);
 
-    // 6. 8秒かけて退場しきった子を消し、入場してきた子を "active" にする
-    setTimeout(() => {
-      setAnimalsOnScreen((prev) =>
-        prev
-          .filter((animal) => animal.status !== "walking-out") // 退場し終えた子を削除
-          .map((animal) => (animal.status === "entering" ? { ...animal, status: "active" as const } : animal)),
-      );
-    }, 20000); // 8秒間
+  // 入場してきた子を一定時間後に "active" にする（退場は移動ロジック側に任せる）
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimalsOnScreen((prev) => prev.map((animal) => (animal.status === "entering" ? { ...animal, status: "active" as const } : animal)));
+    }, 5000);
+    return () => clearTimeout(timer);
   }, []);
 
   // 2分ごと（120000ms）にガチャを実行
@@ -80,35 +78,54 @@ export function useGarden() {
     return () => clearInterval(interval);
   }, [performGacha]);
 
-  // 定期的な移動ロジック
+  // 定期的な移動＆退場ロジック（一定速度で歩かせる）
   useEffect(() => {
     const walkInterval = setInterval(() => {
-      setAnimalsOnScreen((prevAnimals) =>
-        prevAnimals.map((animal) => {
-          // 退場中（walking-out）の動物は画面外の targetX に向かわせるためスキップ
-          if (animal.status === "walking-out") {
-            return animal;
-          }
+      setAnimalsOnScreen(
+        (prevAnimals) =>
+          prevAnimals
+            .map((animal) => {
+              // 退場中（walking-out）の動物の移動処理
+              if (animal.status === "walking-out") {
+                // 現在地から目標の画面外（targetX）へ一定のステップで近づける
+                const step = 8; // 1回あたりの移動量（お好みで調整）
+                const diff = animal.targetX - animal.x;
 
-          // 通常時（active）または入場中（entering）のランダム歩行
-          const moveRange = 7;
-          let newTargetX = animal.targetX + (Math.random() * (moveRange * 2) - moveRange);
-          let newTargetY = animal.targetY + (Math.random() * (moveRange * 2) - moveRange);
+                if (Math.abs(diff) > step) {
+                  return {
+                    ...animal,
+                    x: animal.x + (diff > 0 ? step : -step),
+                  };
+                } else {
+                  // 完全に画面外に到達したら、配列から消すために特別なステータスにするか削除判定へ
+                  return {
+                    ...animal,
+                    x: animal.targetX,
+                    status: "gone" as const, // 画面外に到達したマーク
+                  };
+                }
+              }
 
-          // 庭の中にしっかり収まるように制限
-          newTargetX = Math.max(5, Math.min(95, newTargetX));
-          newTargetY = Math.max(10, Math.min(90, newTargetY));
+              // 通常時（active）または入場中（entering）のランダム歩行
+              const moveRange = 7;
+              let newTargetX = animal.targetX + (Math.random() * (moveRange * 2) - moveRange);
+              let newTargetY = animal.targetY + (Math.random() * (moveRange * 2) - moveRange);
 
-          return {
-            ...animal,
-            x: animal.targetX,
-            y: animal.targetY,
-            targetX: newTargetX,
-            targetY: newTargetY,
-          };
-        }),
+              // 庭の中にしっかり収まるように制限
+              newTargetX = Math.max(5, Math.min(95, newTargetX));
+              newTargetY = Math.max(10, Math.min(90, newTargetY));
+
+              return {
+                ...animal,
+                x: animal.targetX,
+                y: animal.targetY,
+                targetX: newTargetX,
+                targetY: newTargetY,
+              };
+            })
+            .filter((animal) => animal.status !== "gone"), // 画面外に到達した子はここでキレイに削除！
       );
-    }, 10000);
+    }, 3000); // 3秒ごとに少しずつ歩かせる
 
     return () => clearInterval(walkInterval);
   }, []);
