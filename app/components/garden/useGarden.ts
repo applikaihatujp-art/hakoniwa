@@ -73,14 +73,13 @@ export function useGarden() {
           .map((animal) => {
             // 1. 入場中（entering）の動物：目標地点へ歩かせる、一定時間で active にする
             if (animal.status === "entering") {
-              const step = 5; // 移動の滑らかさ
+              const step = 20; // 移動の滑らかさ
               const diffX = animal.targetX - animal.x;
               const diffY = animal.targetY - animal.y;
 
               const nextX = Math.abs(diffX) > step ? animal.x + (diffX > 0 ? step : -step) : animal.targetX;
               const nextY = Math.abs(diffY) > step ? animal.y + (diffY > 0 ? step : -step) : animal.targetY;
 
-              // 目標地点に到着したら active に昇格
               const isArrived = nextX === animal.targetX && nextY === animal.targetY;
 
               return {
@@ -93,25 +92,25 @@ export function useGarden() {
 
             // 2. 退場中（walking-out）の動物の移動処理
             if (animal.status === "walking-out") {
-              const step = 8; // 1回あたりの移動量を小さくしてスムーズに（元は20）
+              const step = 20;
               const diff = animal.targetX - animal.x;
 
-              if (Math.abs(diff) > step) {
-                return {
-                  ...animal,
-                  x: animal.x + (diff > 0 ? step : -step),
-                };
-              } else {
+              if (Math.abs(diff) <= step) {
                 return {
                   ...animal,
                   x: animal.targetX,
                   status: "gone" as const,
                 };
               }
+
+              return {
+                ...animal,
+                x: animal.x + (diff > 0 ? step : -step),
+              };
             }
 
-            // 3. 通常時（active）のランダム歩行
-            const moveRange = 7;
+            // 3. 通常時（active）のランダム歩行（entering や walking-out はここを通らない）
+            const moveRange = 10;
             let newTargetX = animal.targetX + (Math.random() * (moveRange * 2) - moveRange);
             let newTargetY = animal.targetY + (Math.random() * (moveRange * 2) - moveRange);
 
@@ -128,7 +127,7 @@ export function useGarden() {
           })
           .filter((animal) => animal.status !== "gone"),
       );
-    }, 2500); // 3秒ごとから 0.5秒ごとに変更して、細かく滑らかに動かす
+    }, 3000);
 
     return () => clearInterval(walkInterval);
   }, []);
