@@ -16,7 +16,7 @@ export function useTimeZone() {
     };
 
     updateTimeZone();
-    const interval = setInterval(updateTimeZone, 60 * 1000);
+    const interval = setInterval(updateTimeZone, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
