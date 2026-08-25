@@ -25,8 +25,8 @@ export default function WeatherBox() {
 
   // 位置情報と設定モーダルの状態
   const [locationName, setLocationName] = useState("マイガーデン");
-  const [lat, setLat] = useState(35.7);
-  const [lon, setLon] = useState(140.0);
+  const [lat, setLat] = useState(35.68);
+  const [lon, setLon] = useState(139.77);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // 1. 初回ロード時に保存された位置情報を読み込む
